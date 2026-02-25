@@ -1,6 +1,26 @@
-streamlit
-mistralai
-sentence-transformers
-faiss-cpu
-pypdf
-numpy
+# Core web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0               # ASGI server + better logging/reload
+
+# File upload & PDF handling
+python-multipart>=0.0.9                 # required for UploadFile in FastAPI
+pypdf>=5.0.0                            # modern replacement for PyPDF2
+
+# Environment & config
+python-dotenv>=1.0.0
+
+# Mistral AI client
+mistralai>=1.0.0                        # official SDK (check for latest minor version)
+
+# LangChain ecosystem
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-text-splitters>=0.3.0         # often needed explicitly now
+
+# Embeddings & vector store
+sentence-transformers>=3.0.0            # includes huggingface-hub & transformers
+faiss-cpu>=1.8.0                        # or faiss-gpu if you have CUDA
+
+# Optional but very useful for better experience / debugging
+pydantic>=2.8.0                         # FastAPI already depends on it, but good to pin
+typing-extensions>=4.12.0               # helps with type checking in older Python
