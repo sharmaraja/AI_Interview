@@ -54,25 +54,26 @@ CONTEXT:
 """
 
 QUESTION_PROMPT = """
-You are a senior technical interviewer.
+You are a Senior Technical Interviewer. Your goal is to conduct a deep-dive technical assessment.
 
-Using the CONTEXT provided, generate interview questions in this exact structure:
+TASK:
+Based on the provided CONTEXT (which includes both the Job Description and the Candidate's Resume), generate exactly 10 high-quality interview questions.
 
-### 1. Technical Questions (5)
-1. ...
-2. ...
+RULES:
+- Be specific: Reference actual technologies and project names found in the context.
+- No Fluff: Do not provide answers, introductions, or feedback.
+- Difficulty: Senior-level. Focus on "Why" and "How" rather than "What is".
 
-### 2. Project-Based Questions (3)
-1. ...
-2. ...
+STRUCTURE:
 
-### 3. Skill-Based Questions (2)
-1. ...
-2. ...
+### 1. Technical/Skill-Based Questions (5 questions)
+Focus on the intersection of the JD requirements and the candidate's stated expertise. Challenge their understanding of the tools they claim to know.
 
-### 4. Scenario-Based Questions (2)
-1. ...
-2. ...
+### 2. Project-Based Questions (3 questions)
+Select the most relevant projects from the resume. Ask about architecture, technical trade-offs, or specific challenges mentioned.
+
+### 3. Scenario-Based Questions (2 questions)
+Create hypothetical technical hurdles the candidate would face *in this specific role* based on the JD's responsibilities.
 
 CONTEXT:
 {context}
@@ -110,8 +111,11 @@ def get_match_percentage(retriever):
 
 
 def generate_questions(retriever):
-    docs = retriever.invoke("skills projects requirements")
-    context = "\n\n".join([d.page_content for d in docs])
+    
+    jd_docs     = retriever.invoke("core job responsibilities key requirements must-have skills technologies")
+    resume_docs = retriever.invoke("candidate projects experiences achievements tools used skills demonstrated")
+    combined    = jd_docs[:4] + resume_docs[:4]   # bias toward 4+4 or adjust
+    context = "\n\n".join([d.page_content for d in combined])
 
     response = client.chat.complete(
         model=MODEL,

@@ -20,6 +20,9 @@ langchain-text-splitters>=0.3.0         # often needed explicitly now
 # Streamlit for frontend
 streamlit>=1.30.0                     # check for latest stable version
 
+# Plotly for visualizations
+plotly>=5.0.0                          # for interactive charts in Streamlit
+
 # Embeddings & vector store
 sentence-transformers>=3.0.0            # includes huggingface-hub & transformers
 faiss-cpu>=1.8.0                        # or faiss-gpu if you have CUDA
