@@ -41,7 +41,10 @@ MODEL = "mistral-small-latest"
 st.sidebar.success("✅ API Key loaded")
 
 # ========================= PROMPTS =========================
-MATCH_PROMPT = f"""
+# The match prompt uses a placeholder for the combined context (resume + JD).
+# It is defined as a plain string (not an f-string) so we can call `.format`
+# later without triggering NameError at import time.
+MATCH_PROMPT = """
     You are a Senior ATS Recruiter. Your task is to perform a strict 'Phase 1' screening.
 
     ### CRITICAL FILTERING RULES:
@@ -59,8 +62,11 @@ MATCH_PROMPT = f"""
     - 61-85: Strong Match (Has 80% of skills and correct seniority)
     - 86-100: Perfect Match (All skills + exact industry experience)
 
-    RESUME: {resume_text}
-    JD: {jd_text}
+    RESUME:
+    {resume_text}
+
+    JD:
+    {jd_text}
 
     OUTPUT: Provide ONLY the numerical score (0-100).
     """
@@ -107,19 +113,24 @@ def load_pdf(uploaded_file):
         os.unlink(tmp_path)
 
 
-def get_match_percentage(retriever):
-    docs = retriever.invoke("resume job description match")
-    context = "\n\n".join([d.page_content for d in docs])
+def get_match_percentage(resume_text: str, jd_text: str) -> float:
+    """Score the candidate against the JD using the LLM.
+
+    The prompt now accepts the two pieces of text separately so the model
+    can compare them directly instead of relying on an opaque combined
+    context document.
+    """
+    prompt = MATCH_PROMPT.format(resume_text=resume_text, jd_text=jd_text)
 
     response = client.chat.complete(
         model=MODEL,
-        messages=[{"role": "user", "content": MATCH_PROMPT.format(context=context)}]
+        messages=[{"role": "user", "content": prompt}]
     )
     content = response.choices[0].message.content.strip()
     try:
         return float(content)
     except ValueError:
-        return 50.0  # fallback
+        return 50.0
 
 
 def generate_questions(retriever):
@@ -174,6 +185,7 @@ def create_match_gauge(percentage: float):
 
 
 def rag_pipeline(resume_docs, jd_docs):
+    # build a retriever for generating questions later
     documents = resume_docs + jd_docs
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
@@ -183,7 +195,11 @@ def rag_pipeline(resume_docs, jd_docs):
     vectorstore = FAISS.from_documents(chunks, embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
 
-    match_pct = get_match_percentage(retriever)
+    # separately concatenate the resume and JD text for scoring
+    full_resume_text = "\n\n".join([d.page_content for d in resume_docs])
+    full_jd_text = "\n\n".join([d.page_content for d in jd_docs])
+
+    match_pct = get_match_percentage(full_resume_text, full_jd_text)
 
     if match_pct < 60:
         return match_pct, None, "❌ Match below 60% – Candidate rejected"
