@@ -41,17 +41,29 @@ MODEL = "mistral-small-latest"
 st.sidebar.success("✅ API Key loaded")
 
 # ========================= PROMPTS =========================
-MATCH_PROMPT = """
-You are an ATS system.
+MATCH_PROMPT = f"""
+    You are a Senior ATS Recruiter. Your task is to perform a strict 'Phase 1' screening.
 
-Given the CONTEXT below (resume + job description):
-1. Calculate percentage match between resume and JD.
-2. Consider skills, experience, tools, projects, education.
-3. Output ONLY a number between 0 and 100. No explanation.
+    ### CRITICAL FILTERING RULES:
+    1. ROLE ALIGNMENT: Identify the target job title in the JD and the candidate's professional identity in the Resume. 
+       - If the candidate is a 'Graphic Designer' applying for 'Data Scientist', REJECT (Score < 10).
+       - Do not allow 'transferable skills' to bypass a complete lack of core domain experience.
+    2. EXPERIENCE GAP: 
+       - If the JD requires 5+ years and the candidate has < 2 years, REJECT (Score < 30).
+    3. SKILL SYNERGY:
+       - Match must-have tools (e.g., Python, AWS, Docker). If the primary stack is missing, REJECT.
 
-CONTEXT:
-{context}
-"""
+    ### SCORING SYSTEM:
+    - 0-30: Total Mismatch (Wrong role or zero relevant experience)
+    - 31-60: Weak Match (Right domain, but missing 50% of core tools/seniority)
+    - 61-85: Strong Match (Has 80% of skills and correct seniority)
+    - 86-100: Perfect Match (All skills + exact industry experience)
+
+    RESUME: {resume_text}
+    JD: {jd_text}
+
+    OUTPUT: Provide ONLY the numerical score (0-100).
+    """
 
 QUESTION_PROMPT = """
 You are a Senior Technical Interviewer. Your goal is to conduct a deep-dive technical assessment.
