@@ -3,6 +3,8 @@ import os
 from typing import List
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from mistralai import Mistral
 from langchain_community.document_loaders import PyPDFLoader
@@ -19,6 +21,17 @@ app = FastAPI(
     description="Upload resume + JD → get match % and interview questions",
     version="0.1.0"
 )
+
+# allow requests from the browser
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],        # you can restrict this later
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# serve index.html and any other static files from the project root
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 @app.get("/")
 async def root():
@@ -131,6 +144,12 @@ def generate_questions(retriever):
 
 
 # ── API Endpoints ───────────────────────────────────────────────────
+from fastapi.responses import HTMLResponse
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return "<h1>API is running</h1><p>Go to <a href='/docs'>/docs</a> or open index.html</p>"
+
 @app.post("/analyze", response_model=AnalysisResult)
 async def analyze_resume_jd(
     resume: UploadFile = File(...),
